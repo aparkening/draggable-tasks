@@ -1,17 +1,30 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import styled from 'styled-components';
 import { DragDropContext } from 'react-beautiful-dnd';
 import initialData from './initial-data';
 import Column from './column';
+
+
+const Container = styled.div`
+  display: flex;
+`;
 
 class App extends React.Component {
   state = initialData;
 
 
   // Change text color to orange upon start
-  onDragStart = () => {
+  // Capture index
+  onDragStart = start => {
     document.body.style.color = 'orange';
     document.body.style.transition = 'background-color 0.2s ease';
+
+    const homeIndex = this.state.columnOrder.indexOf(start.source.droppableId);
+    
+    this.setState({
+      homeIndex
+    });
   }
 
   // Increase background opacity when dragging down the list
@@ -25,6 +38,9 @@ class App extends React.Component {
 
   // Update state with drag result
   onDragEnd = result => {
+
+    this.setState({ homeIndex: null}); // Clear index when drag finishes
+
     console.log(' Result', result);
 
     // Reset colors on end
@@ -44,32 +60,71 @@ class App extends React.Component {
       return;
     }
     
-    // 
-    const column = this.state.columns[source.droppableId];
-    const newTaskIds = Array.from(column.taskIds);
-    // Move task id from old index to new index
-    newTaskIds.splice(source.index, 1); // Remove from old
-    newTaskIds.splice(destination.index, 0, draggableId); // Add to new
+    // Set start and end columns
+    const start = this.state.columns[source.droppableId];
+    const finish = this.state.columns[destination.droppableId];
+    
+    // If moving within same column
+    if (start === finish) {
+      const newTaskIds = Array.from(start.taskIds);
+    
+      // Move task id from old index to new index
+      newTaskIds.splice(source.index, 1); // Remove from old
+      newTaskIds.splice(destination.index, 0, draggableId); // Add to new
 
+      // Document column changes in newColumn
+      const newColumn = {
+        ...start,
+        taskIds: newTaskIds,
+      };
+
+      // Override existing column
+      const newState = {
+        ...this.state,
+        columns: {
+          ...this.state.columns,
+          [newColumn.id]: newColumn,
+        },
+      };
+
+      // Update state
+      this.setState(newState);
+      return;
+    }
+
+    // Moving from one column to another
+    
+    // Start column
+    const startTaskIds = Array.from(start.taskIds);
+    startTaskIds.splice(source.index, 1); // Remove from old
     // Document column changes in newColumn
-    const newColumn = {
-      ...column,
-      taskIds: newTaskIds,
+    const newStart = {
+      ...start,
+      taskIds: startTaskIds,
     };
 
-    // Override existing column
+    // End column
+    const finishTaskIds = Array.from(finish.taskIds);
+    finishTaskIds.splice(destination.index, 0, draggableId); // Add to new
+    // Document column changes in newColumn
+    const newFinish = {
+      ...finish,
+      taskIds: finishTaskIds,
+    };
+
+    // Override start and finish columns
     const newState = {
       ...this.state,
       columns: {
         ...this.state.columns,
-        [newColumn.id]: newColumn,
+        [newStart.id]: newStart,
+        [newFinish.id]: newFinish,
       },
     };
 
-    console.log('New state', newState);
-
     // Update state
     this.setState(newState);
+    return;
   }; 
 
   render() {
@@ -79,12 +134,25 @@ class App extends React.Component {
         onDragUpdate={this.onDragUpdate}
         onDragEnd={this.onDragEnd}
       >
-        {this.state.columnOrder.map((columnId) => {
-          const column = this.state.columns[columnId];
-          const tasks = column.taskIds.map(taskId => this.state.tasks[taskId]);
+        <Container>
+          {this.state.columnOrder.map((columnId, index) => {
+            const column = this.state.columns[columnId];
+            const tasks = column.taskIds.map(
+              taskId => this.state.tasks[taskId]
+            );
 
-          return <Column key={column.id} column={column} tasks={tasks} />;
-        })}
+            const isDropDisabled = index < this.state.homeIndex; // Don't allow dropping to the left of starting column
+
+            return (
+              <Column 
+                key={column.id} 
+                column={column} 
+                tasks={tasks} 
+                isDropDisabled={isDropDisabled}
+              />
+            );
+          })}
+        </Container>
       </DragDropContext>
     );
   }
