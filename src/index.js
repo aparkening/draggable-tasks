@@ -34,10 +34,13 @@ class InnerList extends React.PureComponent {
 class App extends React.Component {
   state = initialData;
 
-
   // Change text color to orange upon start
   // Capture index
-  onDragStart = start => {
+  onDragStart = (start, provided) => {
+    // Screen reader announcements
+    provided.announce(
+      `You have lifted the task in position ${start.source.index + 1}`
+    );
     document.body.style.color = 'orange';
     document.body.style.transition = 'background-color 0.2s ease';
 
@@ -49,7 +52,13 @@ class App extends React.Component {
   }
 
   // Increase background opacity when dragging down the list
-  onDragUpdate = update => {
+  onDragUpdate = (update, provided) => {
+    // Screen reader announcements
+    const message = update.destination
+      ? `You have moved the task in position ${update.destination.index + 1}`
+      : `You are currently not over a droppable area`;
+    provided.announce(message);
+  
     const { destination } = update;
     const opacity = destination
       ? destination.index / Object.keys(this.state.tasks).length
@@ -58,7 +67,12 @@ class App extends React.Component {
   }
 
   // Update state with drag result
-  onDragEnd = result => {
+  onDragEnd = (result, provided) => {
+    // Screen reader announcements
+    const message = result.destination
+      ? `You have moved the task from position ${result.source.index + 1} to ${result.destination.index + 1}`
+      : `The task has been returned to its starting position of ${result.source.index + 1}`;
+    provided.announce(message);
 
     this.setState({ homeIndex: null}); // Clear index when drag finishes
 
