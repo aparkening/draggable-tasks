@@ -8,6 +8,7 @@ const Container = styled.div`
   border: 1px solid lightgrey;
   border-radius: 0.5em;
   background-color: ${props => (props.isDragging ? 'lightgreen' : 'white')};
+  display: flex;
 `;
 const Handle = styled.div`
   width: 20px;
